@@ -1,0 +1,40 @@
+<div *ngIf="account" class="row">
+  <div class="sub-menu">
+
+    <div class="actor">
+      <img [src]="account.avatarUrl" alt="Avatar" />
+
+      <div class="actor-info">
+        <div class="actor-names">
+          <div class="actor-display-name">{{ account.displayName }}</div>
+          <div class="actor-name">{{ account.nameWithHost }}</div>
+
+          <span *ngIf="user?.blocked" [ngbTooltip]="user.blockedReason" class="badge badge-danger" i18n>Banned</span>
+          <span *ngIf="account.mutedByUser" class="badge badge-danger" i18n>Muted</span>
+          <span *ngIf="account.mutedServerByUser" class="badge badge-danger" i18n>Muted by your instance</span>
+          <span *ngIf="account.mutedByInstance" class="badge badge-danger" i18n>Instance muted</span>
+          <span *ngIf="account.mutedServerByInstance" class="badge badge-danger" i18n>Instance muted by your instance</span>
+
+          <my-user-moderation-dropdown
+            buttonSize="small" [account]="account" [user]="user"
+            (userChanged)="onUserChanged()" (userDeleted)="onUserDeleted()"
+          >
+          </my-user-moderation-dropdown>
+        </div>
+        <div i18n class="actor-followers">{{ account.followersCount }} subscribers</div>
+      </div>
+    </div>
+
+    <div class="links">
+      <a i18n routerLink="videos" routerLinkActive="active" class="title-page">Videos</a>
+
+      <a i18n routerLink="video-channels" routerLinkActive="active" class="title-page">Video channels</a>
+
+      <a i18n routerLink="about" routerLinkActive="active" class="title-page">About</a>
+    </div>
+  </div>
+
+  <div class="margin-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

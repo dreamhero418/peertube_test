@@ -1,0 +1,105 @@
+import * as express from 'express'
+import { getFormattedObjects } from '../../helpers/utils'
+import {
+  asyncMiddleware,
+  commonVideosFiltersValidator,
+  listVideoAccountChannelsValidator,
+  optionalAuthenticate,
+  paginationValidator,
+  setDefaultPagination,
+  setDefaultSort
+} from '../../middlewares'
+import { accountsNameWithHostGetValidator, accountsSortValidator, videosSortValidator } from '../../middlewares/validators'
+import { AccountModel } from '../../models/account/account'
+import { VideoModel } from '../../models/video/video'
+import { buildNSFWFilter, isUserAbleToSearchRemoteURI } from '../../helpers/express-utils'
+import { VideoChannelModel } from '../../models/video/video-channel'
+import { JobQueue } from '../../lib/job-queue'
+import { logger } from '../../helpers/logger'
+
+const accountsRouter = express.Router()
+
+accountsRouter.get('/',
+  paginationValidator,
+  accountsSortValidator,
+  setDefaultSort,
+  setDefaultPagination,
+  asyncMiddleware(listAccounts)
+)
+
+accountsRouter.get('/:accountName',
+  asyncMiddleware(accountsNameWithHostGetValidator),
+  getAccount
+)
+
+accountsRouter.get('/:accountName/videos',
+  asyncMiddleware(accountsNameWithHostGetValidator),
+  paginationValidator,
+  videosSortValidator,
+  setDefaultSort,
+  setDefaultPagination,
+  optionalAuthenticate,
+  commonVideosFiltersValidator,
+  asyncMiddleware(listAccountVideos)
+)
+
+accountsRouter.get('/:accountName/video-channels',
+  asyncMiddleware(listVideoAccountChannelsValidator),
+  asyncMiddleware(listVideoAccountChannels)
+)
+
+// ---------------------------------------------------------------------------
+
+export {
+  accountsRouter
+}
+
+// ---------------------------------------------------------------------------
+
+function getAccount (req: express.Request, res: express.Response, next: express.NextFunction) {
+  const account: AccountModel = res.locals.account
+
+  if (account.isOutdated()) {
+    JobQueue.Instance.createJob({ type: 'activitypub-refresher', payload: { type: 'actor', url: account.Actor.url } })
+            .catch(err => logger.error('Cannot create AP refresher job for actor %s.', account.Actor.url, { err }))
+  }
+
+  return res.json(account.toFormattedJSON())
+}
+
+async function listAccounts (req: express.Request, res: express.Response, next: express.NextFunction) {
+  const resultList = await AccountModel.listForApi(req.query.start, req.query.count, req.query.sort)
+
+  return res.json(getFormattedObjects(resultList.data, resultList.total))
+}
+
+async function listVideoAccountChannels (req: express.Request, res: express.Response, next: express.NextFunction) {
+  const resultList = await VideoChannelModel.listByAccount(res.locals.account.id)
+
+  return res.json(getFormattedObjects(resultList.data, resultList.total))
+}
+
+async function listAccountVideos (req: express.Request, res: express.Response, next: express.NextFunction) {
+  const account: AccountModel = res.locals.account
+  const followerActorId = isUserAbleToSearchRemoteURI(res) ? null : undefined
+
+  const resultList = await VideoModel.listForApi({
+    followerActorId,
+    start: req.query.start,
+    count: req.query.count,
+    sort: req.query.sort,
+    includeLocalVideos: true,
+    categoryOneOf: req.query.categoryOneOf,
+    licenceOneOf: req.query.licenceOneOf,
+    languageOneOf: req.query.languageOneOf,
+    tagsOneOf: req.query.tagsOneOf,
+    tagsAllOf: req.query.tagsAllOf,
+    filter: req.query.filter,
+    nsfw: buildNSFWFilter(res, req.query.nsfw),
+    withFiles: false,
+    accountId: account.id,
+    user: res.locals.oauth ? res.locals.oauth.token.User : undefined
+  })
+
+  return res.json(getFormattedObjects(resultList.data, resultList.total))
+}

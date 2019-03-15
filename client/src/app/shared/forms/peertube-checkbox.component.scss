@@ -1,0 +1,31 @@
+@import '_variables';
+@import '_mixins';
+
+.root {
+  display: flex;
+
+  .form-group-checkbox {
+    display: flex;
+
+    span {
+      font-weight: $font-regular;
+      margin: 0;
+    }
+
+    input {
+      @include peertube-checkbox(1px);
+
+      width: 10px;
+      margin-right: 10px;
+    }
+  }
+
+  label {
+    margin-bottom: 0;
+  }
+
+  my-help {
+    position: relative;
+    top: -2px;
+  }
+}

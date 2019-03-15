@@ -1,0 +1,26 @@
+@import '_variables';
+@import '_mixins';
+
+.add-button {
+  @include create-button;
+}
+
+tr.banned {
+  color: red;
+}
+
+.banned-info {
+  font-style: italic;
+}
+
+.ban-reason-label {
+  font-weight: $font-semibold;
+}
+
+.caption {
+  justify-content: space-between;
+
+  input {
+    @include peertube-input-text(250px);
+  }
+}

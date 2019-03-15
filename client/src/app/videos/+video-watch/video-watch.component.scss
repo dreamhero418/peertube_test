@@ -1,0 +1,487 @@
+@import '_variables';
+@import '_mixins';
+@import '_bootstrap-variables';
+
+$other-videos-width: 260px;
+
+.root-row {
+  flex-direction: column;
+}
+
+.blacklisted-label {
+  font-weight: $font-semibold;
+}
+
+#video-element-wrapper {
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  flex-grow: 1;
+
+  .remote-server-down {
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    background-color: #141313;
+    width: 100%;
+    font-size: 24px;
+    height: 500px;
+
+    @media screen and (max-width: 1000px) {
+      font-size: 20px;
+    }
+
+    @media screen and (max-width: 600px) {
+      font-size: 16px;
+    }
+  }
+
+  /deep/ .video-js {
+    width: calc(66vh * 1.77);
+    height: 66vh;
+
+    &.vjs-theater-enabled {
+      height: calc(100vh - #{$header-height} - #{$theater-bottom-space});
+      width: 100%;
+    }
+
+    // VideoJS create an inner video player
+    video {
+      outline: 0;
+      position: relative !important;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    .remote-server-down,
+    /deep/ .video-js {
+      width: 100vw;
+      height: calc(100vw / 1.7); // 16/9
+    }
+  }
+}
+
+.alert {
+  text-align: center;
+}
+
+#video-not-found {
+  height: 300px;
+  line-height: 300px;
+  margin-top: 50px;
+  text-align: center;
+  font-weight: $font-semibold;
+  font-size: 15px;
+}
+
+.video-bottom {
+  margin-top: 40px;
+
+  .video-info {
+    flex-grow: 1;
+    // Set min width for flex item
+    min-width: 1px;
+    max-width: 100%;
+
+    .video-info-first-row {
+      display: flex;
+
+      & > div:first-child {
+        flex-grow: 1;
+      }
+
+      .video-info-name {
+        margin-right: 30px;
+        min-height: 40px; // Align with the action buttons
+        font-size: 27px;
+        font-weight: $font-semibold;
+        flex-grow: 1;
+      }
+
+      .video-info-date-views {
+        flex-grow: 1;
+        margin-bottom: 10px;
+        margin-right: 10px;
+        font-size: 16px;
+      }
+
+      .video-info-channel {
+        font-weight: $font-semibold;
+        font-size: 15px;
+
+        a {
+          @include disable-default-a-behaviour;
+
+          color: var(--mainForegroundColor);
+
+          &:hover {
+            opacity: 0.8;
+          }
+
+          img {
+            @include avatar(18px);
+
+            margin: -2px 2px 0 5px;
+          }
+        }
+
+        my-subscribe-button {
+          margin-left: 5px;
+        }
+      }
+
+      .video-info-by {
+
+        a {
+          @include disable-default-a-behaviour;
+
+          display: inline;
+          align-items: center;
+          font-size: 13px;
+          color: var(--mainForegroundColor);
+
+          span:hover {
+            opacity: 0.8;
+          }
+
+          img {
+            @include avatar(18px);
+
+            margin-top: -2px;
+            margin-left: 7px;
+          }
+        }
+
+        my-help {
+          position: relative;
+          top: 1px;
+          margin-left: 2px;
+        }
+      }
+
+      my-feed {
+        margin-left: 5px;
+        margin-top: 1px;
+      }
+
+      .video-actions-rates {
+        margin: 20px 0 10px 0;
+        align-items: start;
+
+        .video-actions {
+          height: 40px; // Align with the title
+          display: flex;
+          align-items: center;
+
+          .action-button:not(:first-child), .action-more {
+            margin-left: 10px;
+          }
+
+          .action-button {
+            @include peertube-button;
+            @include grey-button;
+            @include button-with-icon(21px, 0, -1px);
+            @include apply-svg-color($grey-foreground-color);
+
+            font-size: 15px;
+            font-weight: $font-semibold;
+            display: inline-block;
+            padding: 0 10px 0 10px;
+            white-space: nowrap;
+
+            &::after {
+              display: none;
+            }
+
+            &.action-button-like.activated {
+              background-color: $green;
+
+              my-global-icon {
+                @include apply-svg-color(#fff);
+              }
+            }
+
+            &.action-button-dislike.activated {
+              background-color: $red;
+
+              my-global-icon {
+                @include apply-svg-color(#fff);
+              }
+            }
+
+            .icon-text {
+              margin-left: 3px;
+            }
+          }
+
+          .action-more {
+            display: inline-block;
+
+            .dropdown-menu .dropdown-item {
+              padding: 6px 24px;
+
+              my-global-icon {
+                width: 24px;
+
+                margin-right: 10px;
+                position: relative;
+                top: -2px;
+              }
+            }
+          }
+        }
+
+        .video-info-likes-dislikes-bar {
+          $likes-bar-height: 2px;
+          height: $likes-bar-height;
+          margin-top: -$likes-bar-height;
+          width: 186px;
+          background-color: $red;
+          position: relative;
+          top: 10px;
+
+          .likes-bar {
+            height: 100%;
+            background-color: $green;
+          }
+        }
+      }
+    }
+
+    .video-info-description {
+      margin: 20px 0;
+      font-size: 15px;
+
+      .video-info-description-html {
+        @include peertube-word-wrap;
+      }
+
+      .glyphicon, .description-loading {
+        margin-left: 3px;
+      }
+
+      .description-loading {
+        display: inline-block;
+      }
+
+      .video-info-description-more {
+        cursor: pointer;
+        font-weight: $font-semibold;
+        color: $grey-foreground-color;
+        font-size: 14px;
+
+        .glyphicon {
+          position: relative;
+          top: 2px;
+        }
+      }
+    }
+
+    .video-attributes .video-attribute {
+      font-size: 13px;
+      display: block;
+      margin-bottom: 12px;
+
+      .video-attribute-label {
+        min-width: 142px;
+        padding-right: 5px;
+        display: inline-block;
+        color: $grey-foreground-color;
+        font-weight: $font-bold;
+      }
+
+      a.video-attribute-value {
+        @include disable-default-a-behaviour;
+        color: var(--mainForegroundColor);
+
+        &:hover {
+          opacity: 0.9;
+        }
+      }
+
+      &.video-attribute-tags {
+        .video-attribute-value:not(:nth-child(2)) {
+          &::before {
+            content: ', '
+          }
+        }
+      }
+    }
+  }
+
+  /deep/ .other-videos {
+    padding-left: 15px;
+    width: $other-videos-width;
+
+    .title-page {
+      margin-top: 0 !important;
+    }
+
+    .video-miniature {
+      display: flex;
+      height: 100%;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+
+      .video-miniature-information {
+        flex-grow: 1;
+      }
+
+      .video-thumbnail {
+        margin-right: 10px
+      }
+    }
+  }
+}
+
+my-video-comments {
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+// If the view is not expanded, take into account the menu
+.privacy-concerns {
+  width: calc(100% - #{$menu-width});
+}
+
+@media screen and (max-width: $small-view) {
+  .privacy-concerns {
+    margin-left: $menu-width;
+  }
+}
+
+:host-context(.expanded) {
+  .privacy-concerns {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+.privacy-concerns {
+  position: fixed;
+  bottom: 0;
+
+  padding: 5px 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: #fff;
+
+  .privacy-concerns-text {
+    margin: 0 5px;
+  }
+
+  a {
+    @include disable-default-a-behaviour;
+
+    color: var(--mainColor);
+    transition: color 0.3s;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  .privacy-concerns-okay {
+    background-color: var(--mainColor);
+    padding: 5px 8px 5px 7px;
+    margin-left: auto;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: $font-semibold;
+
+    &:hover {
+      background-color: #000;
+    }
+  }
+}
+
+@media screen and (min-width: map-get($grid-breakpoints, xl)) {
+  .video-bottom .video-info {
+    max-width: calc(100% - #{$other-videos-width});
+  }
+}
+
+@media screen and (max-width: 1600px) {
+  .video-bottom .video-info .video-attributes .video-attribute {
+    margin-bottom: 5px;
+  }
+}
+
+@media screen and (max-width: 1300px) {
+  .privacy-concerns {
+    font-size: 12px;
+    padding: 2px 5px;
+
+    .privacy-concerns-text {
+      margin: 0;
+    }
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .video-bottom {
+    margin: 20px 0 0 0;
+
+    .video-info {
+      padding: 0;
+
+      .video-info-first-row {
+
+        .video-info-name {
+          font-size: 20px;
+          height: auto;
+        }
+      }
+    }
+  }
+
+  /deep/ .other-videos {
+    padding-left: 0 !important;
+
+    /deep/ .video-miniature  {
+      flex-direction: column;
+    }
+  }
+
+  .privacy-concerns {
+    width: 100%;
+
+    strong {
+      display: none;
+    }
+  }
+}
+
+@media screen and (max-width: 450px) {
+  .video-bottom {
+    .action-button .icon-text {
+      display: none !important;
+    }
+
+    .video-info .video-info-first-row {
+      .video-info-name {
+        font-size: 18px;
+      }
+
+      .video-info-date-views {
+        font-size: 14px;
+      }
+
+      .video-actions-rates {
+        margin-top: 10px;
+      }
+    }
+
+    .video-info-description {
+      font-size: 14px !important;
+    }
+  }
+}

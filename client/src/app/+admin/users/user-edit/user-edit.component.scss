@@ -1,0 +1,47 @@
+@import '_variables';
+@import '_mixins';
+
+.form-sub-title {
+  margin-bottom: 30px;
+}
+
+input:not([type=submit]) {
+  @include peertube-input-text(340px);
+  display: block;
+}
+
+.peertube-select-container {
+  @include peertube-select-container(340px);
+}
+
+input[type=submit], button {
+  @include peertube-button;
+  @include orange-button;
+
+  margin-top: 10px;
+}
+
+.transcoding-information {
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+.account-title {
+  @include in-content-small-title;
+
+  margin-top: 55px;
+  margin-bottom: 30px;
+}
+
+.danger-zone {
+  .reset-password-email {
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+    button {
+      display: block;
+      margin-top: 0;
+    }
+  }
+}

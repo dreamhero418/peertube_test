@@ -1,0 +1,162 @@
+import * as validator from 'validator'
+import { ACTIVITY_PUB, CONSTRAINTS_FIELDS } from '../../../initializers'
+import { peertubeTruncate } from '../../core-utils'
+import { exists, isArray, isBooleanValid, isDateValid, isUUIDValid } from '../misc'
+import {
+  isVideoDurationValid,
+  isVideoNameValid,
+  isVideoStateValid,
+  isVideoTagValid,
+  isVideoTruncatedDescriptionValid,
+  isVideoViewsValid
+} from '../videos'
+import { isActivityPubUrlValid, isBaseActivityValid, setValidAttributedTo } from './misc'
+import { VideoState } from '../../../../shared/models/videos'
+
+function sanitizeAndCheckVideoTorrentUpdateActivity (activity: any) {
+  return isBaseActivityValid(activity, 'Update') &&
+    sanitizeAndCheckVideoTorrentObject(activity.object)
+}
+
+function isActivityPubVideoDurationValid (value: string) {
+  // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-duration
+  return exists(value) &&
+    typeof value === 'string' &&
+    value.startsWith('PT') &&
+    value.endsWith('S') &&
+    isVideoDurationValid(value.replace(/[^0-9]+/g, ''))
+}
+
+function sanitizeAndCheckVideoTorrentObject (video: any) {
+  if (!video || video.type !== 'Video') return false
+
+  if (!setValidRemoteTags(video)) return false
+  if (!setValidRemoteVideoUrls(video)) return false
+  if (!setRemoteVideoTruncatedContent(video)) return false
+  if (!setValidAttributedTo(video)) return false
+  if (!setValidRemoteCaptions(video)) return false
+
+  // Default attributes
+  if (!isVideoStateValid(video.state)) video.state = VideoState.PUBLISHED
+  if (!isBooleanValid(video.waitTranscoding)) video.waitTranscoding = false
+  if (!isBooleanValid(video.downloadEnabled)) video.downloadEnabled = true
+
+  return isActivityPubUrlValid(video.id) &&
+    isVideoNameValid(video.name) &&
+    isActivityPubVideoDurationValid(video.duration) &&
+    isUUIDValid(video.uuid) &&
+    (!video.category || isRemoteNumberIdentifierValid(video.category)) &&
+    (!video.licence || isRemoteNumberIdentifierValid(video.licence)) &&
+    (!video.language || isRemoteStringIdentifierValid(video.language)) &&
+    isVideoViewsValid(video.views) &&
+    isBooleanValid(video.sensitive) &&
+    isBooleanValid(video.commentsEnabled) &&
+    isBooleanValid(video.downloadEnabled) &&
+    isDateValid(video.published) &&
+    isDateValid(video.updated) &&
+    (!video.originallyPublishedAt || isDateValid(video.originallyPublishedAt)) &&
+    (!video.content || isRemoteVideoContentValid(video.mediaType, video.content)) &&
+    isRemoteVideoIconValid(video.icon) &&
+    video.url.length !== 0 &&
+    video.attributedTo.length !== 0
+}
+
+function isRemoteVideoUrlValid (url: any) {
+  // FIXME: Old bug, we used the width to represent the resolution. Remove it in a few release (currently beta.11)
+  if (url.width && !url.height) url.height = url.width
+
+  return url.type === 'Link' &&
+    (
+      // TODO: remove mimeType (backward compatibility, introduced in v1.1.0)
+      ACTIVITY_PUB.URL_MIME_TYPES.VIDEO.indexOf(url.mediaType || url.mimeType) !== -1 &&
+      isActivityPubUrlValid(url.href) &&
+      validator.isInt(url.height + '', { min: 0 }) &&
+      validator.isInt(url.size + '', { min: 0 }) &&
+      (!url.fps || validator.isInt(url.fps + '', { min: -1 }))
+    ) ||
+    (
+      ACTIVITY_PUB.URL_MIME_TYPES.TORRENT.indexOf(url.mediaType || url.mimeType) !== -1 &&
+      isActivityPubUrlValid(url.href) &&
+      validator.isInt(url.height + '', { min: 0 })
+    ) ||
+    (
+      ACTIVITY_PUB.URL_MIME_TYPES.MAGNET.indexOf(url.mediaType || url.mimeType) !== -1 &&
+      validator.isLength(url.href, { min: 5 }) &&
+      validator.isInt(url.height + '', { min: 0 })
+    ) ||
+    (
+      (url.mediaType || url.mimeType) === 'application/x-mpegURL' &&
+      isActivityPubUrlValid(url.href) &&
+      isArray(url.tag)
+    )
+}
+
+// ---------------------------------------------------------------------------
+
+export {
+  sanitizeAndCheckVideoTorrentUpdateActivity,
+  isRemoteStringIdentifierValid,
+  sanitizeAndCheckVideoTorrentObject,
+  isRemoteVideoUrlValid
+}
+
+// ---------------------------------------------------------------------------
+
+function setValidRemoteTags (video: any) {
+  if (Array.isArray(video.tag) === false) return false
+
+  video.tag = video.tag.filter(t => {
+    return t.type === 'Hashtag' &&
+      isVideoTagValid(t.name)
+  })
+
+  return true
+}
+
+function setValidRemoteCaptions (video: any) {
+  if (!video.subtitleLanguage) video.subtitleLanguage = []
+
+  if (Array.isArray(video.subtitleLanguage) === false) return false
+
+  video.subtitleLanguage = video.subtitleLanguage.filter(caption => {
+    return isRemoteStringIdentifierValid(caption)
+  })
+
+  return true
+}
+
+function isRemoteNumberIdentifierValid (data: any) {
+  return validator.isInt(data.identifier, { min: 0 })
+}
+
+function isRemoteStringIdentifierValid (data: any) {
+  return typeof data.identifier === 'string'
+}
+
+function isRemoteVideoContentValid (mediaType: string, content: string) {
+  return mediaType === 'text/markdown' && isVideoTruncatedDescriptionValid(content)
+}
+
+function isRemoteVideoIconValid (icon: any) {
+  return icon.type === 'Image' &&
+    isActivityPubUrlValid(icon.url) &&
+    icon.mediaType === 'image/jpeg' &&
+    validator.isInt(icon.width + '', { min: 0 }) &&
+    validator.isInt(icon.height + '', { min: 0 })
+}
+
+function setValidRemoteVideoUrls (video: any) {
+  if (Array.isArray(video.url) === false) return false
+
+  video.url = video.url.filter(u => isRemoteVideoUrlValid(u))
+
+  return true
+}
+
+function setRemoteVideoTruncatedContent (video: any) {
+  if (video.content) {
+    video.content = peertubeTruncate(video.content, CONSTRAINTS_FIELDS.VIDEOS.TRUNCATED_DESCRIPTION.max)
+  }
+
+  return true
+}

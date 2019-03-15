@@ -1,0 +1,59 @@
+@import '_variables';
+@import '_mixins';
+
+form {
+  margin-bottom: 30px;
+}
+
+.avatar-and-textarea {
+  display: flex;
+  margin-bottom: 10px;
+
+  img {
+    @include avatar(36px);
+
+    vertical-align: top;
+    margin-right: 20px;
+  }
+
+  .form-group {
+    flex-grow: 1;
+    margin: 0;
+
+    textarea {
+      @include peertube-textarea(100%, 60px);
+
+      &:focus::placeholder {
+        opacity: 0;
+      }
+    }
+  }
+}
+
+.submit-comment {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    @include peertube-button;
+    @include orange-button;
+  }
+}
+
+@media screen and (max-width: 450px) {
+  textarea, .submit-comment button {
+    font-size: 14px !important;
+  }
+}
+
+.modal-body {
+  .btn {
+    @include peertube-button;
+    @include orange-button;
+  }
+
+  span {
+    float: left;
+    margin-bottom: 20px;
+  }
+}

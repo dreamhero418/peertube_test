@@ -1,0 +1,251 @@
+/* tslint:disable:no-unused-expression */
+
+import 'mocha'
+
+import {
+  createUser,
+  doubleFollow,
+  flushAndRunMultipleServers,
+  flushTests,
+  getBlacklistedVideosList,
+  getVideo,
+  getVideoWithToken,
+  killallServers,
+  makePostBodyRequest,
+  makePutBodyRequest,
+  removeVideoFromBlacklist,
+  ServerInfo,
+  setAccessTokensToServers,
+  uploadVideo,
+  userLogin, waitJobs
+} from '../../../../shared/utils'
+import {
+  checkBadCountPagination,
+  checkBadSortPagination,
+  checkBadStartPagination
+} from '../../../../shared/utils/requests/check-api-params'
+import { VideoDetails } from '../../../../shared/models/videos'
+import { expect } from 'chai'
+
+describe('Test video blacklist API validators', function () {
+  let servers: ServerInfo[]
+  let notBlacklistedVideoId: number
+  let remoteVideoUUID: string
+  let userAccessToken1 = ''
+  let userAccessToken2 = ''
+
+  // ---------------------------------------------------------------
+
+  before(async function () {
+    this.timeout(120000)
+
+    await flushTests()
+    servers = await flushAndRunMultipleServers(2)
+
+    await setAccessTokensToServers(servers)
+    await doubleFollow(servers[0], servers[1])
+
+    {
+      const username = 'user1'
+      const password = 'my super password'
+      await createUser(servers[0].url, servers[0].accessToken, username, password)
+      userAccessToken1 = await userLogin(servers[0], { username, password })
+    }
+
+    {
+      const username = 'user2'
+      const password = 'my super password'
+      await createUser(servers[0].url, servers[0].accessToken, username, password)
+      userAccessToken2 = await userLogin(servers[0], { username, password })
+    }
+
+    {
+      const res = await uploadVideo(servers[0].url, userAccessToken1, {})
+      servers[0].video = res.body.video
+    }
+
+    {
+      const res = await uploadVideo(servers[0].url, servers[0].accessToken, {})
+      notBlacklistedVideoId = res.body.video.uuid
+    }
+
+    {
+      const res = await uploadVideo(servers[1].url, servers[1].accessToken, {})
+      remoteVideoUUID = res.body.video.uuid
+    }
+
+    await waitJobs(servers)
+  })
+
+  describe('When adding a video in blacklist', function () {
+    const basePath = '/api/v1/videos/'
+
+    it('Should fail with nothing', async function () {
+      const path = basePath + servers[0].video + '/blacklist'
+      const fields = {}
+      await makePostBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields })
+    })
+
+    it('Should fail with a wrong video', async function () {
+      const wrongPath = '/api/v1/videos/blabla/blacklist'
+      const fields = {}
+      await makePostBodyRequest({ url: servers[0].url, path: wrongPath, token: servers[0].accessToken, fields })
+    })
+
+    it('Should fail with a non authenticated user', async function () {
+      const path = basePath + servers[0].video + '/blacklist'
+      const fields = {}
+      await makePostBodyRequest({ url: servers[0].url, path, token: 'hello', fields, statusCodeExpected: 401 })
+    })
+
+    it('Should fail with a non admin user', async function () {
+      const path = basePath + servers[0].video + '/blacklist'
+      const fields = {}
+      await makePostBodyRequest({ url: servers[0].url, path, token: userAccessToken2, fields, statusCodeExpected: 403 })
+    })
+
+    it('Should fail with an invalid reason', async function () {
+      const path = basePath + servers[0].video.uuid + '/blacklist'
+      const fields = { reason: 'a'.repeat(305) }
+
+      await makePostBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields })
+    })
+
+    it('Should fail to unfederate a remote video', async function () {
+      const path = basePath + remoteVideoUUID + '/blacklist'
+      const fields = { unfederate: true }
+
+      await makePostBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields, statusCodeExpected: 409 })
+    })
+
+    it('Should succeed with the correct params', async function () {
+      const path = basePath + servers[0].video.uuid + '/blacklist'
+      const fields = { }
+
+      await makePostBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields, statusCodeExpected: 204 })
+    })
+  })
+
+  describe('When updating a video in blacklist', function () {
+    const basePath = '/api/v1/videos/'
+
+    it('Should fail with a wrong video', async function () {
+      const wrongPath = '/api/v1/videos/blabla/blacklist'
+      const fields = {}
+      await makePutBodyRequest({ url: servers[0].url, path: wrongPath, token: servers[0].accessToken, fields })
+    })
+
+    it('Should fail with a video not blacklisted', async function () {
+      const path = '/api/v1/videos/' + notBlacklistedVideoId + '/blacklist'
+      const fields = {}
+      await makePutBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields, statusCodeExpected: 404 })
+    })
+
+    it('Should fail with a non authenticated user', async function () {
+      const path = basePath + servers[0].video + '/blacklist'
+      const fields = {}
+      await makePutBodyRequest({ url: servers[0].url, path, token: 'hello', fields, statusCodeExpected: 401 })
+    })
+
+    it('Should fail with a non admin user', async function () {
+      const path = basePath + servers[0].video + '/blacklist'
+      const fields = {}
+      await makePutBodyRequest({ url: servers[0].url, path, token: userAccessToken2, fields, statusCodeExpected: 403 })
+    })
+
+    it('Should fail with an invalid reason', async function () {
+      const path = basePath + servers[0].video.uuid + '/blacklist'
+      const fields = { reason: 'a'.repeat(305) }
+
+      await makePutBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields })
+    })
+
+    it('Should succeed with the correct params', async function () {
+      const path = basePath + servers[0].video.uuid + '/blacklist'
+      const fields = { reason: 'hello' }
+
+      await makePutBodyRequest({ url: servers[0].url, path, token: servers[0].accessToken, fields, statusCodeExpected: 204 })
+    })
+  })
+
+  describe('When getting blacklisted video', function () {
+
+    it('Should fail with a non authenticated user', async function () {
+      await getVideo(servers[0].url, servers[0].video.uuid, 401)
+    })
+
+    it('Should fail with another user', async function () {
+      await getVideoWithToken(servers[0].url, userAccessToken2, servers[0].video.uuid, 403)
+    })
+
+    it('Should succeed with the owner authenticated user', async function () {
+      const res = await getVideoWithToken(servers[0].url, userAccessToken1, servers[0].video.uuid, 200)
+      const video: VideoDetails = res.body
+
+      expect(video.blacklisted).to.be.true
+    })
+
+    it('Should succeed with an admin', async function () {
+      const res = await getVideoWithToken(servers[0].url, servers[0].accessToken, servers[0].video.uuid, 200)
+      const video: VideoDetails = res.body
+
+      expect(video.blacklisted).to.be.true
+    })
+  })
+
+  describe('When removing a video in blacklist', function () {
+    it('Should fail with a non authenticated user', async function () {
+      await removeVideoFromBlacklist(servers[0].url, 'fake token', servers[0].video.uuid, 401)
+    })
+
+    it('Should fail with a non admin user', async function () {
+      await removeVideoFromBlacklist(servers[0].url, userAccessToken2, servers[0].video.uuid, 403)
+    })
+
+    it('Should fail with an incorrect id', async function () {
+      await removeVideoFromBlacklist(servers[0].url, servers[0].accessToken, 'hello', 400)
+    })
+
+    it('Should fail with a not blacklisted video', async function () {
+      // The video was not added to the blacklist so it should fail
+      await removeVideoFromBlacklist(servers[0].url, servers[0].accessToken, notBlacklistedVideoId, 404)
+    })
+
+    it('Should succeed with the correct params', async function () {
+      await removeVideoFromBlacklist(servers[0].url, servers[0].accessToken, servers[0].video.uuid, 204)
+    })
+  })
+
+  describe('When listing videos in blacklist', function () {
+    const basePath = '/api/v1/videos/blacklist/'
+
+    it('Should fail with a non authenticated user', async function () {
+      await getBlacklistedVideosList(servers[0].url, 'fake token', 401)
+    })
+
+    it('Should fail with a non admin user', async function () {
+      await getBlacklistedVideosList(servers[0].url, userAccessToken2, 403)
+    })
+
+    it('Should fail with a bad start pagination', async function () {
+      await checkBadStartPagination(servers[0].url, basePath, servers[0].accessToken)
+    })
+
+    it('Should fail with a bad count pagination', async function () {
+      await checkBadCountPagination(servers[0].url, basePath, servers[0].accessToken)
+    })
+
+    it('Should fail with an incorrect sort', async function () {
+      await checkBadSortPagination(servers[0].url, basePath, servers[0].accessToken)
+    })
+  })
+
+  after(async function () {
+    killallServers(servers)
+
+    // Keep the logs if the test failed
+    if (this['ok']) {
+      await flushTests()
+    }
+  })
+})

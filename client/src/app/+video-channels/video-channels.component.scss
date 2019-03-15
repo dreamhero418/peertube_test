@@ -1,0 +1,14 @@
+@import '_variables';
+@import '_mixins';
+
+.sub-menu {
+  @include sub-menu-with-actor;
+
+  .actor, .actor-info {
+    width: 100%;
+  }
+
+  .actor-name {
+    flex-grow: 1;
+  }
+}

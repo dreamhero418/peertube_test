@@ -1,0 +1,44 @@
+# NPM instalation
+/node_modules/
+*npm-debug.log
+
+# Testing
+/test1/
+/test2/
+/test3/
+/test4/
+/test5/
+/test6/
+/server/tests/fixtures/video_high_bitrate_1080p.mp4
+
+# Production
+/storage/
+/config/production.yaml
+/config/local*
+/ffmpeg/
+/ffmpeg-4/
+/ffmpeg-3/
+/thumbnails/
+/torrents/
+/videos/
+/previews/
+/logs/
+
+# IDE
+/*.sublime-project
+/*.sublime-workspace
+/**/.idea
+/dist
+/PeerTube.iml
+
+# Zanata
+/.zanata-cache
+/scripts/i18n/generate-iso639-target.ts
+
+# Other
+/profiling/
+/*.zip
+/*.tar.xz
+/*.asc
+/server/tools/import-mediacore.ts
+/docker-volume/
